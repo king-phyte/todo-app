@@ -18,5 +18,4 @@
 +    4) Currently, the app does not support data persistence after it is restarted
 
 + Author: King Phyte
-
 + Email: kofiasante1400@gmail.com
