@@ -3,7 +3,7 @@
 
 + Python version: 3.7.4
 + First public version: 0.0.7
-+ App Version: 0.0.8
++ Current Version: 0.0.8
 
 + Usage:
 +    1) Type in the text field and press enter/return key to add a to-do
