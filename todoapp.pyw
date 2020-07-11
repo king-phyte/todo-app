@@ -7,12 +7,9 @@ Usage:
 
 Note:
     1) The maximum number of characters one can input is 70
-
     2) Empty to-dos will not be added to the list
-
-    3) Clicking the "Done" button will not delete the to-do.
-    It will merely disable it
-    To delete a to-do, use the ❌ button
+    3) Click the edit button to edit a to-do
+    4) To delete a to-do, use the ❌ button
 
 Author:
     King Phyte
@@ -21,111 +18,143 @@ Email:
     kofiasante1400@gmail.com
 
 Version:
-    0.0.8
+    0.0.9
 """
 
-import tkinter as tk
+from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 
 
-class Todo:
-    """
-    The main app
-    """
-    i = 2
-    deleted = []
+class RowList:
+    def __init__(self):
+        self.items = []
+
+    def __iter__(self):
+        for item in self.items:
+            yield item
+
+    def __len__(self):
+        return len(self.items)
+
+    def append(self, *args):
+        for i in args:
+            self.items.append(i)
+
+
+class DeleteCommand:
 
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("To-Do")
-        self.root.geometry("600x600")
-        self.root.resizable(0, 0)
-        self.default_frame = ttk.Frame(self.root, width=400, height=400)
-        self.default_frame.pack()
-        self.new_todo()
-        self.root.mainloop()
+        self.items = []
 
-    def new_todo(self):
-        """Creates new to-do app"""
-        def undo_handler():
-            for i in Todo.deleted[-1]:
-                i.grid()
+    def __iter__(self):
+        for item in self.items:
+            yield item
+
+    def __len__(self):
+        return len(self.items)
+
+    def append(self, item):
+        self.items.append(item)
+
+
+class ToDo(Frame):
+
+    i = 0
+
+    def __init__(self, master=None, datafile=None, *args):
+        super().__init__(master)
+        self.datafile = datafile
+        self.pack()
+        self.rows = RowList()
+        self.deleted = DeleteCommand()
+        self.buildWindow()
+
+    def buildWindow(self):
+        """
+        This method is called to create all widgets, place them in the GUI, and
+        define the event handlers for the application
+        """
+        self.master.title("To-Do App")
+        self.master.resizable(0, 0)
+        self.master.geometry("730x800")
+
+        default_frame = ttk.Frame(self.master, width=800, height=800)
+        default_frame.pack()
+
+        def undo_delete_handler():
+            if len(self.deleted) > 0:
+                last_undo = self.deleted.items[-1]
+                last_undo[0].pack()
+                for i in range(1, 4):
+                    last_undo[i].grid()
+
+        undo_delete = ttk.Button(
+            default_frame, text="Undo Delete", command=undo_delete_handler)
+        undo_delete.pack()
+
+        def delete_todo_handler(indx):
+            for lst in self.rows.items:
+                if indx in lst:
+                    self.deleted.append(lst)
+                    try:
+                        for j in lst:
+                            j.grid_remove()
+                    except Exception:
+                        pass
+                    finally:
+                        text_entry_field.focus()
+
+        def edit_todo_handler(textfield, button):
+            def save_edit():
+                textfield.configure(state="disabled")
+                button.configure(text="❌")
                 text_entry_field.focus()
-        undo_button = ttk.Button(
-            self.default_frame, text="Undo delete", command=undo_handler)
-        undo_button.grid(column=19, sticky="e")
-        text_entry_field = ttk.Entry(self.default_frame, width=98)
-        text_entry_field.grid(columnspan=20)
+            textfield.configure(state="normal")
+            textfield.focus()
+            button.configure(text="Done", command=save_edit)
+
+        def add_todo(widget):
+
+            user_text = widget.get()
+
+            if len(user_text) <= 90 and len(user_text) > 0:
+                indx = ToDo.i
+                todo_frame = ttk.Frame(default_frame, width=800)
+                todo_frame.pack()
+                edit_button = ttk.Button(
+                    todo_frame, text="Edit", command=lambda: edit_todo_handler(text_field, delete_button))
+                edit_button.grid(row=1, column=0)
+                text_field = ttk.Entry(todo_frame, width=95)
+                text_field.grid(row=1, column=1)
+                text_field.insert("end", user_text)
+                delete_button = ttk.Button(
+                    todo_frame, text="❌", command=lambda: delete_todo_handler(indx))
+                delete_button.grid(row=1, column=3)
+                text_field.configure(state="disabled")
+
+                self.rows.append(
+                    [todo_frame, edit_button, text_field, delete_button, indx])
+
+                widget.delete("0", "end")
+
+                ToDo.i += 1
+
+            elif len(user_text) > 70:
+                messagebox.showinfo(title="To-Do App",
+                                    message="Maximum characters allowed is 70")
+
+        text_entry_field = ttk.Entry(default_frame, width=120)
+        text_entry_field.pack()
         text_entry_field.focus()
-
         text_entry_field.bind("<Return>",
-                              lambda e: self.add_todo(text_entry_field))
-
-    def add_todo(self, widget):
-        """Adds a to-do label"""
-        user_text = widget.get()
-
-        todos = []
-        rows = []
-
-        def done_handler():
-            """Toggles the state of a to-do"""
-            try:
-                if to_do.state()[0] == "disabled":
-                    to_do.configure(state="normal")
-                    cross_out.configure(text="Done")
-
-            except Exception:
-                to_do.configure(state="disabled")
-                cross_out.configure(text="Not Done")
-            finally:
-                widget.focus()
-
-        def delete_todo_handler():
-            """Deletes a to-do"""
-            try:
-                if to_do in todos:
-                    if todos in rows:
-                        Todo.deleted.append(todos)
-                        for i in todos:
-                            i.grid_remove()
-            except Exception:
-                print(Exception)
-            finally:
-                widget.focus()
-
-        if user_text != "" and len(user_text) <= 70:
-            to_do = ttk.Label(self.default_frame, text=user_text)
-            to_do.grid(row=Todo.i, columnspan=16, column=1, sticky="ew")
-
-            cross_out = ttk.Button(self.default_frame, text="Done",
-                                   command=done_handler)
-            cross_out.grid(row=Todo.i, column=0, sticky="ew")
-
-            delete_todo = ttk.Button(
-                self.default_frame, text="❌",
-                command=delete_todo_handler)
-            delete_todo.grid(row=Todo.i, column=19, sticky="we")
-            widget.delete("0", "end")
-            widget.focus()
-            todos.append(to_do)
-            todos.append(cross_out)
-            todos.append(delete_todo)
-
-            rows.append(todos)
-            Todo.i += 1
-
-        elif len(user_text) > 70:
-            messagebox.showinfo(title="To-Do App",
-                                message="Maximum characters allowed is 70")
+                              lambda e: add_todo(text_entry_field))
 
 
 def main():
-    """
-    Runs the application
-    """
-    Todo()
+    root = Tk()
+    APP = ToDo(master=root)
+    root.mainloop()
 
 
 if __name__ == "__main__":
